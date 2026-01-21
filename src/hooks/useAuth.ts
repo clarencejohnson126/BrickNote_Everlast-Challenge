@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 import type { User } from '@/lib/types';
 
-// Check if we're running in Electron
-const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined;
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,15 +52,27 @@ export function useAuth() {
       return { error: new Error('Supabase not configured') };
     }
 
+    // Check if we're running in Electron (check at call time, not module load)
+    const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+
     // In development, always use localhost (deep link only works in packaged app)
     // In production Electron, use deep link protocol
     // In production web, use current origin
     const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-    const redirectTo = isDev
-      ? 'http://localhost:3007'
-      : isElectron
-        ? 'bricknote://auth/callback'
-        : window.location.origin;
+
+    let redirectTo: string;
+    if (isDev) {
+      // Development mode: localhost (same window will receive the redirect)
+      redirectTo = 'http://localhost:3007';
+    } else if (isElectron) {
+      // Production Electron: deep link will open the Electron app
+      redirectTo = 'bricknote://auth/callback';
+    } else {
+      // Production web: redirect back to current origin
+      redirectTo = window.location.origin;
+    }
+
+    console.log('[Auth] signIn redirect:', { isDev, isElectron, redirectTo });
 
     const { error } = await supabase.auth.signInWithOtp({
       email,

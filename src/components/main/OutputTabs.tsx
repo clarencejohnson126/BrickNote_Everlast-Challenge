@@ -9,9 +9,6 @@ import { SmartInsights } from '@/components/main/SmartInsights';
 import { useSound } from '@/hooks/useSound';
 import type { Language, DefectData, SmartInsights as SmartInsightsType } from '@/lib/types';
 
-// Helper to check if we're in Electron
-const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
-
 interface OutputTabsProps {
   onSave: (data: {
     transcript: string;
@@ -38,8 +35,28 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
   const [generatingPresentation, setGeneratingPresentation] = useState(false);
   const [presentationStatus, setPresentationStatus] = useState<string | null>(null);
   const [presentationError, setPresentationError] = useState<string | null>(null);
+  const [isElectron, setIsElectron] = useState(() => {
+    // Initial check - will be false during SSR, true in Electron after hydration
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      return true;
+    }
+    return false;
+  });
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { playClick } = useSound();
+
+  // Re-check for Electron after mount (in case preload script was slow)
+  useEffect(() => {
+    const checkElectron = () => {
+      const hasElectron = typeof window !== 'undefined' && !!window.electronAPI;
+      console.log('[OutputTabs] isElectron check:', hasElectron, window.electronAPI);
+      setIsElectron(hasElectron);
+    };
+    checkElectron();
+    // Also check after a short delay in case preload is slow
+    const timer = setTimeout(checkElectron, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const {
     transcript,
@@ -212,8 +229,7 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
   }, []);
 
   const handleGeneratePresentation = useCallback(async () => {
-    const electronAPI = window.electronAPI;
-    if (!electronAPI || !currentContent) return;
+    if (!currentContent) return;
     playClick();
 
     setGeneratingPresentation(true);
@@ -225,7 +241,21 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
         ? (language === 'de' ? `Tagesbericht - ${projectName || 'Baustelle'}` : `Daily Report - ${projectName || 'Construction Site'}`)
         : (language === 'de' ? 'Mängelbericht' : 'Defect Report');
 
-      const result = await electronAPI.generatePresentation(currentContent, title);
+      const electronAPI = window.electronAPI;
+      let result;
+
+      if (electronAPI) {
+        // Use Electron IPC
+        result = await electronAPI.generatePresentation(currentContent, title);
+      } else {
+        // Use API route (browser mode)
+        const response = await fetch('/api/gamma/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: currentContent, title }),
+        });
+        result = await response.json();
+      }
 
       if (!result.success || !result.generationId) {
         throw new Error(result.error || 'Failed to start presentation generation');
@@ -237,7 +267,18 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
       const generationId = result.generationId;
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const statusResult = await electronAPI.checkPresentationStatus(generationId);
+          let statusResult;
+
+          if (electronAPI) {
+            statusResult = await electronAPI.checkPresentationStatus(generationId);
+          } else {
+            const response = await fetch('/api/gamma/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ generationId }),
+            });
+            statusResult = await response.json();
+          }
 
           if (!statusResult.success) {
             throw new Error(statusResult.error || 'Failed to check status');
@@ -396,8 +437,8 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
         )}
       </div>
 
-      {/* Smart Insights section */}
-      {hasContent && isElectron && (
+      {/* Smart Insights section - available in both Electron and browser */}
+      {hasContent && (
         <SmartInsights
           insights={smartInsights}
           isProcessing={isProcessingInsights}
@@ -479,8 +520,8 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
             </Button>
           )}
 
-          {/* Generate Gamma Document button - only in Electron */}
-          {isElectron && hasContent && (
+          {/* Generate Gamma Document button - available in both Electron and browser */}
+          {hasContent && (
             <Button
               variant="secondary"
               onClick={handleGeneratePresentation}

@@ -60,32 +60,22 @@ interface RecordingProviderProps {
   projectName: string;
 }
 
-// Direct API calls for browser mode
+// API calls for browser mode (using Next.js API routes)
 async function transcribeAudio(audioBlob: Blob, language: string): Promise<{ success: boolean; text?: string; error?: string }> {
   try {
-    // Create a proper File object from the Blob
     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
 
     const formData = new FormData();
     formData.append('file', audioFile);
-    formData.append('model', 'whisper-1');
-    formData.append('language', language === 'de' ? 'de' : 'en');
+    formData.append('language', language);
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    const response = await fetch('/api/transcribe', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
-      },
       body: formData,
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Whisper API error: ${error}`);
-    }
-
     const result = await response.json();
-    return { success: true, text: result.text };
+    return result;
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Transcription failed' };
   }
@@ -93,92 +83,14 @@ async function transcribeAudio(audioBlob: Blob, language: string): Promise<{ suc
 
 async function generateDiary(transcript: string, language: string, projectName: string): Promise<{ success: boolean; markdown?: string; error?: string }> {
   try {
-    // Get actual current date and time
-    const now = new Date();
-    const currentDate = now.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const currentTime = now.toLocaleTimeString(language === 'de' ? 'de-DE' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const systemPrompt = language === 'de'
-      ? `Du bist ein Assistent für Baustellendokumentation. Erstelle aus der Sprachnotiz einen strukturierten Tagesbericht im Markdown-Format.
-
-WICHTIG: Das aktuelle Datum ist ${currentDate}, Uhrzeit ${currentTime}. Verwende IMMER dieses Datum im Bericht, UNABHÄNGIG davon was der Benutzer im Transkript sagt.
-
-Verwende folgende Struktur:
-# Tagesbericht - ${projectName || 'Baustelle'}
-## Datum: ${currentDate}
-
-### Anwesende Gewerke
-- [Liste der erwähnten Gewerke/Firmen]
-
-### Durchgeführte Arbeiten
-- [Detaillierte Auflistung]
-
-### Materiallieferungen
-- [Falls erwähnt]
-
-### Besondere Vorkommnisse
-- [Falls erwähnt]
-
-### Nächste Schritte
-- [Falls erwähnt]
-
-WICHTIG: Erfinde KEINE Informationen. Nutze NUR das, was in der Sprachnotiz erwähnt wird. Wenn etwas nicht erwähnt wird, lasse den Abschnitt weg.`
-      : `You are a construction site documentation assistant. Create a structured daily report in Markdown format from the voice note.
-
-IMPORTANT: The current date is ${currentDate}, time ${currentTime}. ALWAYS use this date in the report, REGARDLESS of what the user says in the transcript.
-
-Use this structure:
-# Daily Report - ${projectName || 'Construction Site'}
-## Date: ${currentDate}
-
-### Present Trades/Contractors
-- [List of mentioned trades/companies]
-
-### Work Completed
-- [Detailed list]
-
-### Material Deliveries
-- [If mentioned]
-
-### Special Incidents
-- [If mentioned]
-
-### Next Steps
-- [If mentioned]
-
-IMPORTANT: Do NOT invent information. Only use what is mentioned in the voice note. If something is not mentioned, omit that section.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/generate-diary', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: transcript },
-        ],
-        temperature: 0.3,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, language, projectName }),
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
-    }
 
     const result = await response.json();
-    return { success: true, markdown: result.choices[0].message.content };
+    return result;
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Diary generation failed' };
   }
@@ -186,86 +98,14 @@ IMPORTANT: Do NOT invent information. Only use what is mentioned in the voice no
 
 async function generateDefect(transcript: string, language: string): Promise<{ success: boolean; markdown?: string; json?: DefectData | null; error?: string }> {
   try {
-    // Get actual current date and time
-    const now = new Date();
-    const currentDate = now.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const currentTime = now.toLocaleTimeString(language === 'de' ? 'de-DE' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const systemPrompt = language === 'de'
-      ? `Du bist ein Assistent für Baustellendokumentation. Analysiere die Sprachnotiz auf Mängel oder Probleme.
-
-WICHTIG: Das aktuelle Datum ist ${currentDate}, Uhrzeit ${currentTime}. Verwende IMMER dieses Datum im Bericht.
-
-Wenn Mängel erwähnt werden, erstelle einen strukturierten Mängelbericht im Markdown-Format:
-# Mängelbericht
-## Datum: ${currentDate}
-
-### Mangel 1
-- **Ort:** [Wo wurde der Mangel festgestellt]
-- **Beschreibung:** [Detaillierte Beschreibung]
-- **Gewerk:** [Verantwortliches Gewerk, falls bekannt]
-- **Priorität:** [Hoch/Mittel/Niedrig, basierend auf Kontext]
-
-Wiederhole für jeden erwähnten Mangel.
-
-Wenn KEINE Mängel erwähnt werden, antworte nur mit:
-"Keine Mängel in dieser Aufnahme dokumentiert."
-
-WICHTIG: Erfinde KEINE Mängel. Dokumentiere NUR das, was explizit als Problem oder Mangel erwähnt wird.`
-      : `You are a construction site documentation assistant. Analyze the voice note for defects or issues.
-
-IMPORTANT: The current date is ${currentDate}, time ${currentTime}. ALWAYS use this date in the report.
-
-If defects are mentioned, create a structured defect report in Markdown format:
-# Defect Report
-## Date: ${currentDate}
-
-### Defect 1
-- **Location:** [Where the defect was found]
-- **Description:** [Detailed description]
-- **Trade:** [Responsible trade, if known]
-- **Priority:** [High/Medium/Low, based on context]
-
-Repeat for each mentioned defect.
-
-If NO defects are mentioned, respond only with:
-"No defects documented in this recording."
-
-IMPORTANT: Do NOT invent defects. Only document what is explicitly mentioned as a problem or defect.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/generate-defect', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: transcript },
-        ],
-        temperature: 0.3,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, language }),
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
-    }
 
     const result = await response.json();
-    const content = result.choices[0].message.content;
-
-    return { success: true, markdown: content, json: null };
+    return result;
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Defect generation failed' };
   }
@@ -294,37 +134,59 @@ export function RecordingProvider({
   const animationFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Listen for global hotkey from Electron (if available)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      const cleanup = window.electronAPI.onRecordingToggle(() => {
-        toggleRecording();
-      });
-      return cleanup;
-    }
-  }, []);
 
   // Audio level analysis
   const startAudioAnalysis = useCallback((stream: MediaStream) => {
+    console.log('[Audio] Starting audio analysis...');
+    console.log('[Audio] Stream tracks:', stream.getAudioTracks().map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })));
+
     const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
+    console.log('[Audio] AudioContext state:', audioContext.state);
+
+    // Resume AudioContext if suspended (required after user gesture)
+    if (audioContext.state === 'suspended') {
+      console.log('[Audio] Resuming suspended AudioContext...');
+      audioContext.resume().then(() => {
+        console.log('[Audio] AudioContext resumed, state:', audioContext.state);
+      });
+    }
+
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.3; // Faster response
     analyserRef.current = analyser;
 
     const source = audioContext.createMediaStreamSource(stream);
     source.connect(analyser);
+    console.log('[Audio] MediaStreamSource connected to analyser');
 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const dataArray = new Uint8Array(analyser.fftSize);
+    let frameCount = 0;
 
     const updateLevel = () => {
-      if (!analyserRef.current) return;
+      if (!analyserRef.current) {
+        console.log('[Audio] Analyser ref is null, stopping');
+        return;
+      }
 
-      analyserRef.current.getByteFrequencyData(dataArray);
+      // Use time domain data for real-time volume visualization
+      analyserRef.current.getByteTimeDomainData(dataArray);
 
-      // Calculate average volume level
-      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-      const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+      // Calculate RMS (root mean square) for volume level
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const value = (dataArray[i] - 128) / 128; // Normalize to -1 to 1
+        sum += value * value;
+      }
+      const rms = Math.sqrt(sum / dataArray.length);
+      const normalizedLevel = Math.min(rms * 3, 1); // Scale up and clamp to 0-1
+
+      // Log every 30 frames (roughly every 0.5 seconds)
+      frameCount++;
+      if (frameCount % 30 === 0) {
+        console.log('[Audio] Level update:', { rms: rms.toFixed(4), normalized: normalizedLevel.toFixed(3) });
+      }
 
       setAudioLevel(normalizedLevel);
       animationFrameRef.current = requestAnimationFrame(updateLevel);
@@ -447,6 +309,34 @@ export function RecordingProvider({
       await startRecording();
     }
   }, [isRecording, startRecording, stopRecording]);
+
+  // Use refs to avoid re-registering the hotkey listener on every state change
+  const isRecordingRef = useRef(isRecording);
+  const startRecordingRef = useRef(startRecording);
+  const stopRecordingRef = useRef(stopRecording);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+    startRecordingRef.current = startRecording;
+    stopRecordingRef.current = stopRecording;
+  }, [isRecording, startRecording, stopRecording]);
+
+  // Listen for global hotkey from Electron (if available) - only register ONCE
+  useEffect(() => {
+    const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
+    if (electronAPI) {
+      console.log('[Hotkey] Setting up recording toggle listener (once)');
+      const cleanup = electronAPI.onRecordingToggle(() => {
+        console.log('[Hotkey] Received recording:toggle event, isRecording:', isRecordingRef.current);
+        if (isRecordingRef.current) {
+          stopRecordingRef.current();
+        } else {
+          startRecordingRef.current();
+        }
+      });
+      return cleanup;
+    }
+  }, []); // Empty deps - only run once
 
   const processRecording = async (
     audioBlob: Blob,
@@ -592,33 +482,61 @@ export function RecordingProvider({
         const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
         console.log('[generateSmartInsights] electronAPI available:', !!electronAPI);
 
-        if (!electronAPI) {
-          console.warn('Smart Insights requires Electron API');
-          setIsProcessingInsights(false);
-          return;
-        }
+        let claimSafetyResult, confidenceMeterResult, deltaIntelligenceResult;
 
-        console.log('[generateSmartInsights] Calling IPC handlers...');
-        // Run all three analyses in parallel
-        const [claimSafetyResult, confidenceMeterResult, deltaIntelligenceResult] =
-          await Promise.all([
-            electronAPI.generateClaimSafety(diaryMarkdown, defectMarkdown, lang),
-            electronAPI.generateConfidenceMeter(
-              transcript,
-              diaryMarkdown,
-              defectMarkdown,
-              lang
-            ),
-            electronAPI.generateDeltaIntelligence(
-              transcript,
-              diaryMarkdown,
-              defectMarkdown,
-              previousEntries,
-              lang
-            ),
+        if (electronAPI) {
+          // Use Electron IPC
+          console.log('[generateSmartInsights] Calling IPC handlers...');
+          [claimSafetyResult, confidenceMeterResult, deltaIntelligenceResult] =
+            await Promise.all([
+              electronAPI.generateClaimSafety(diaryMarkdown, defectMarkdown, lang),
+              electronAPI.generateConfidenceMeter(
+                transcript,
+                diaryMarkdown,
+                defectMarkdown,
+                lang
+              ),
+              electronAPI.generateDeltaIntelligence(
+                transcript,
+                diaryMarkdown,
+                defectMarkdown,
+                previousEntries,
+                lang
+              ),
+            ]);
+        } else {
+          // Use API routes (browser mode)
+          console.log('[generateSmartInsights] Calling API routes...');
+          const [safetyRes, confidenceRes, deltaRes] = await Promise.all([
+            fetch('/api/smart-insights/claim-safety', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ diaryMarkdown, defectMarkdown, language: lang }),
+            }),
+            fetch('/api/smart-insights/confidence-meter', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ transcript, diaryMarkdown, defectMarkdown, language: lang }),
+            }),
+            fetch('/api/smart-insights/delta-intelligence', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                currentTranscript: transcript,
+                currentDiary: diaryMarkdown,
+                currentDefect: defectMarkdown,
+                previousEntries,
+                language: lang,
+              }),
+            }),
           ]);
 
-        console.log('[generateSmartInsights] IPC results:', {
+          claimSafetyResult = await safetyRes.json();
+          confidenceMeterResult = await confidenceRes.json();
+          deltaIntelligenceResult = await deltaRes.json();
+        }
+
+        console.log('[generateSmartInsights] Results:', {
           claimSafety: claimSafetyResult.success,
           confidenceMeter: confidenceMeterResult.success,
           deltaIntelligence: deltaIntelligenceResult.success,

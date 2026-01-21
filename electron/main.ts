@@ -14,15 +14,27 @@ const PROTOCOL = 'bricknote';
 
 // Load environment variables from .env file
 function loadEnv() {
-  const envPath = path.join(app.getAppPath(), '.env');
+  // In development, use process.cwd() which is the project root
+  // In production, use app.getAppPath() where the .env should be bundled
+  const isDev = !app.isPackaged;
+  const envPath = isDev
+    ? path.join(process.cwd(), '.env')
+    : path.join(app.getAppPath(), '.env');
+
+  console.log('[Env] Loading .env from:', envPath, '(isDev:', isDev, ')');
+
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     envContent.split('\n').forEach((line) => {
       const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join('=').trim();
+      if (key && valueParts.length > 0 && !key.startsWith('#')) {
+        const value = valueParts.join('=').trim();
+        process.env[key.trim()] = value;
       }
     });
+    console.log('[Env] Environment loaded, OPENAI_API_KEY set:', !!process.env.OPENAI_API_KEY);
+  } else {
+    console.warn('[Env] .env file not found at:', envPath);
   }
 }
 
