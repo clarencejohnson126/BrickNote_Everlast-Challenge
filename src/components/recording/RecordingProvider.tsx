@@ -63,6 +63,7 @@ interface RecordingProviderProps {
 // API calls for browser mode (using Next.js API routes)
 async function transcribeAudio(audioBlob: Blob, language: string): Promise<{ success: boolean; text?: string; error?: string }> {
   try {
+    console.log('[transcribeAudio] Starting, blob size:', audioBlob.size);
     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
 
     const formData = new FormData();
@@ -74,39 +75,87 @@ async function transcribeAudio(audioBlob: Blob, language: string): Promise<{ suc
       body: formData,
     });
 
+    console.log('[transcribeAudio] Response status:', response.status);
+
+    // Check if response is ok before parsing JSON
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[transcribeAudio] Error response:', errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return { success: false, error: errorJson.error || `HTTP ${response.status}` };
+      } catch {
+        return { success: false, error: errorText || `HTTP ${response.status}` };
+      }
+    }
+
     const result = await response.json();
+    console.log('[transcribeAudio] Success:', result.success);
     return result;
   } catch (error) {
+    console.error('[transcribeAudio] Catch error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Transcription failed' };
   }
 }
 
 async function generateDiary(transcript: string, language: string, projectName: string): Promise<{ success: boolean; markdown?: string; error?: string }> {
   try {
+    console.log('[generateDiary] Starting, transcript length:', transcript.length);
     const response = await fetch('/api/generate-diary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript, language, projectName }),
     });
 
+    console.log('[generateDiary] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[generateDiary] Error response:', errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return { success: false, error: errorJson.error || `HTTP ${response.status}` };
+      } catch {
+        return { success: false, error: errorText || `HTTP ${response.status}` };
+      }
+    }
+
     const result = await response.json();
+    console.log('[generateDiary] Success:', result.success);
     return result;
   } catch (error) {
+    console.error('[generateDiary] Catch error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Diary generation failed' };
   }
 }
 
 async function generateDefect(transcript: string, language: string): Promise<{ success: boolean; markdown?: string; json?: DefectData | null; error?: string }> {
   try {
+    console.log('[generateDefect] Starting, transcript length:', transcript.length);
     const response = await fetch('/api/generate-defect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript, language }),
     });
 
+    console.log('[generateDefect] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[generateDefect] Error response:', errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return { success: false, error: errorJson.error || `HTTP ${response.status}` };
+      } catch {
+        return { success: false, error: errorText || `HTTP ${response.status}` };
+      }
+    }
+
     const result = await response.json();
+    console.log('[generateDefect] Success:', result.success);
     return result;
   } catch (error) {
+    console.error('[generateDefect] Catch error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Defect generation failed' };
   }
 }
@@ -531,9 +580,23 @@ export function RecordingProvider({
             }),
           ]);
 
-          claimSafetyResult = await safetyRes.json();
-          confidenceMeterResult = await confidenceRes.json();
-          deltaIntelligenceResult = await deltaRes.json();
+          // Helper to safely parse response
+          const parseResponse = async (res: Response, name: string) => {
+            if (!res.ok) {
+              console.error(`[generateSmartInsights] ${name} error:`, res.status);
+              return { success: false, error: `HTTP ${res.status}` };
+            }
+            try {
+              return await res.json();
+            } catch (e) {
+              console.error(`[generateSmartInsights] ${name} JSON parse error:`, e);
+              return { success: false, error: 'Invalid response' };
+            }
+          };
+
+          claimSafetyResult = await parseResponse(safetyRes, 'claim-safety');
+          confidenceMeterResult = await parseResponse(confidenceRes, 'confidence-meter');
+          deltaIntelligenceResult = await parseResponse(deltaRes, 'delta-intelligence');
         }
 
         console.log('[generateSmartInsights] Results:', {

@@ -254,6 +254,11 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content: currentContent, title }),
         });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Gamma] Generate error:', errorText);
+          throw new Error(errorText || `HTTP ${response.status}`);
+        }
         result = await response.json();
       }
 
@@ -277,6 +282,11 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ generationId }),
             });
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('[Gamma] Status error:', errorText);
+              throw new Error(errorText || `HTTP ${response.status}`);
+            }
             statusResult = await response.json();
           }
 
