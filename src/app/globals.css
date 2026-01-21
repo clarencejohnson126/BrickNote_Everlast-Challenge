@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #171717;
+  --background: #ffffff;
+  --muted: #737373;
+  --border: #e5e5e5;
+  --accent: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+}
+
+.dark {
+  --foreground: #fafafa;
+  --background: #0a0a0a;
+  --muted: #a3a3a3;
+  --border: #262626;
+  --accent: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar - minimal design */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #404040;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+/* Drag region for macOS title bar */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Recording pulse animation */
+@keyframes recording-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.recording-indicator {
+  animation: recording-pulse 2s ease-in-out infinite;
+}
+
+/* Toast notification */
+@keyframes toast-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-slide-in 0.3s ease-out forwards;
+}
+
+/* Markdown content styling - elegant typography */
+.markdown-content {
+  @apply text-slate-700 leading-relaxed;
+}
+
+.dark .markdown-content {
+  @apply text-neutral-300;
+}
+
+.markdown-content h1 {
+  @apply font-display text-2xl font-semibold mb-6 text-slate-900 tracking-tight;
+}
+
+.dark .markdown-content h1 {
+  @apply text-white;
+}
+
+.markdown-content h2 {
+  @apply font-display text-xl font-medium mb-4 mt-8 text-slate-800 tracking-tight;
+}
+
+.dark .markdown-content h2 {
+  @apply text-neutral-100;
+}
+
+.markdown-content h3 {
+  @apply text-base font-semibold mb-3 mt-6 text-slate-800 uppercase tracking-wider;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.dark .markdown-content h3 {
+  @apply text-neutral-200;
+}
+
+.markdown-content p {
+  @apply mb-4 text-slate-600 leading-relaxed;
+}
+
+.dark .markdown-content p {
+  @apply text-neutral-400;
+}
+
+.markdown-content ul {
+  @apply mb-4 space-y-2;
+}
+
+.markdown-content li {
+  @apply text-slate-600 pl-4 relative;
+}
+
+.dark .markdown-content li {
+  @apply text-neutral-400;
+}
+
+.markdown-content li::before {
+  content: '';
+  @apply absolute left-0 top-2.5 w-1 h-1 bg-slate-400 rounded-full;
+}
+
+.dark .markdown-content li::before {
+  @apply bg-neutral-500;
+}
+
+.markdown-content strong {
+  @apply font-medium text-slate-800;
+}
+
+.dark .markdown-content strong {
+  @apply text-neutral-200;
+}
+
+.markdown-content code {
+  @apply bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-slate-700;
+}
+
+.dark .markdown-content code {
+  @apply bg-neutral-800 text-neutral-300;
+}
+
+.markdown-content pre {
+  @apply bg-slate-50 border border-slate-200 p-4 rounded-lg overflow-x-auto mb-4;
+}
+
+.dark .markdown-content pre {
+  @apply bg-neutral-800 border-neutral-700;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Focus states - minimal */
+*:focus-visible {
+  @apply outline-none ring-2 ring-slate-900 ring-offset-2;
+}
+
+.dark *:focus-visible {
+  @apply ring-white ring-offset-neutral-900;
+}
+
+/* Selection - elegant */
+::selection {
+  @apply bg-slate-900 text-white;
+}
+
+.dark ::selection {
+  @apply bg-white text-neutral-900;
+}
+
+/* Transitions */
+.transition-elegant {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

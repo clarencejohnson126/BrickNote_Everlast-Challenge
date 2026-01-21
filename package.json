@@ -1,0 +1,53 @@
+{
+  "name": "bricknote",
+  "version": "1.0.0",
+  "description": "Desktop voice intelligence app for construction site documentation",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"next dev -p 3007\" \"npm run electron:dev\"",
+    "build": "next build && npm run electron:build",
+    "start": "electron .",
+    "electron:dev": "tsc -p electron/tsconfig.json && electron .",
+    "electron:build": "tsc -p electron/tsconfig.json",
+    "package": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "form-data": "^4.0.0",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "use-sound": "^5.0.0",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3"
+  },
+  "build": {
+    "appId": "com.bricknote.app",
+    "productName": "BrickNote",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "out/**/*"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
