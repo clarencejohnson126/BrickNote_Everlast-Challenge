@@ -2,15 +2,46 @@
 
 Desktop voice intelligence app for construction site documentation. Record voice notes on-site, get AI-generated daily reports and defect documentation.
 
+**Built for the EVERLAST KI Developer Challenge**
+
 ## Features
 
-- **Global Hotkey Recording** - Press `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows) to start/stop recording
+- **Global Hotkey Recording** - Press `Cmd+Shift+Space` (Mac) or `Ctrl+Shift+Space` (Windows) to start/stop recording
 - **Speech-to-Text** - Transcription powered by OpenAI Whisper API
 - **AI-Generated Reports** - GPT-4o generates structured daily reports and defect documentation
 - **Bilingual Support** - Toggle between German (DE) and English (EN)
 - **Project Management** - Organize recordings by construction project
 - **History** - View, copy, and manage past entries
 - **Magic Link Auth** - Passwordless authentication via Supabase
+- **Smart Insights** - AI-powered analysis including:
+  - **Claim Safety Layer** - Legal risk assessment with VOB/BGB references
+  - **Confidence Meter** - Documentation completeness scoring
+  - **Delta Intelligence** - Track changes across project entries
+
+## Quick Start (for Reviewers)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/clarencejohnson126/BrickNote_Everlast-Challenge.git
+cd BrickNote_Everlast-Challenge
+
+# 2. Install dependencies
+npm install
+
+# 3. Create .env file with API keys (see .env.example)
+cp .env.example .env
+# Edit .env with your Supabase and OpenAI credentials
+
+# 4. Run the Electron app
+npm run dev
+
+# 5. Sign in with your email, click the magic link, and start recording!
+```
+
+**Test the app:**
+- Press `Cmd+Shift+Space` to start/stop recording
+- Speak in German or English about construction work
+- Review the generated reports in the tabs
 
 ## Architecture
 
@@ -67,29 +98,29 @@ OPENAI_API_KEY=sk-your-openai-api-key
 
 The following tables are required in Supabase:
 
-**projects**
+**bricknote_projects**
 ```sql
-create table public.projects (
+create table public.bricknote_projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null,
   name text not null,
   created_at timestamptz default now()
 );
 
-alter table public.projects enable row level security;
+alter table public.bricknote_projects enable row level security;
 
 create policy "Users can CRUD own projects"
-  on public.projects for all
+  on public.bricknote_projects for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 ```
 
-**voice_entries**
+**bricknote_voice_entries**
 ```sql
-create table public.voice_entries (
+create table public.bricknote_voice_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null,
-  project_id uuid references public.projects on delete set null,
+  project_id uuid references public.bricknote_projects on delete set null,
   created_at timestamptz default now(),
   language text check (language in ('de','en')) not null,
   transcript_raw text not null,
@@ -99,13 +130,24 @@ create table public.voice_entries (
   meta jsonb
 );
 
-alter table public.voice_entries enable row level security;
+alter table public.bricknote_voice_entries enable row level security;
 
 create policy "Users can CRUD own entries"
-  on public.voice_entries for all
+  on public.bricknote_voice_entries for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 ```
+
+### Supabase Auth Configuration
+
+In your Supabase project dashboard, go to **Authentication → URL Configuration** and add these redirect URLs:
+
+```
+http://localhost:3007/**
+bricknote://auth/callback
+```
+
+The first one is for development, the second is for the packaged desktop app.
 
 ### Installation
 
@@ -125,13 +167,16 @@ npm run package
 
 ## Usage
 
-1. **Sign In** - Enter your email to receive a magic link
+1. **Sign In** - Enter your email to receive a magic link (click the link in your email to authenticate)
 2. **Select Language** - Choose DE or EN for output language
 3. **Create/Select Project** - Organize your recordings by project
-4. **Record** - Press `Cmd/Ctrl+Shift+R` to start recording
-5. **Stop Recording** - Press the hotkey again to stop
-6. **Review Output** - Check the generated Diary and Defect Report tabs
-7. **Save** - Click Save to store the entry in your history
+4. **Record** - Press `Cmd+Shift+Space` (Mac) or `Ctrl+Shift+Space` (Windows) to start recording
+5. **Stop Recording** - Press the hotkey again to stop and process, or click ✕ to abort
+6. **Review Output** - Check the generated Tagesbericht (Diary) and Mängelbericht (Defect Report) tabs
+7. **Smart Insights** - Click "Analysieren" for AI-powered risk analysis and documentation metrics
+8. **Save** - Click Save to store the entry in your history
+
+> **Note for reviewers:** The app runs on `localhost:3007` in development. Authentication magic links will redirect back to this URL automatically.
 
 ## Design Decisions
 

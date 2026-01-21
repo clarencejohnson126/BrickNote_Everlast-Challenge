@@ -55,10 +55,15 @@ export function useAuth() {
       return { error: new Error('Supabase not configured') };
     }
 
-    // Use deep link protocol when in Electron, otherwise use current origin
-    const redirectTo = isElectron
-      ? 'bricknote://auth/callback'
-      : window.location.origin;
+    // In development, always use localhost (deep link only works in packaged app)
+    // In production Electron, use deep link protocol
+    // In production web, use current origin
+    const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    const redirectTo = isDev
+      ? 'http://localhost:3007'
+      : isElectron
+        ? 'bricknote://auth/callback'
+        : window.location.origin;
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
