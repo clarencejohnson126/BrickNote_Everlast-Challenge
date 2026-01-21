@@ -15,8 +15,47 @@ export function useAuth() {
       return;
     }
 
+    // Check if URL has auth tokens (from magic link redirect in browser)
+    const hashParams = typeof window !== 'undefined' ? window.location.hash : '';
+    const hasAuthTokens = hashParams.includes('access_token=');
+
+    if (hasAuthTokens) {
+      console.log('[Auth] Detected auth tokens in URL hash, processing...');
+      // Clear the hash after a short delay to clean up the URL
+      setTimeout(() => {
+        if (window.location.hash.includes('access_token=')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }, 1000);
+    }
+
+    // Listen for auth tokens from Electron (via IPC from deep link)
+    const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
+    let cleanupTokenListener: (() => void) | undefined;
+
+    if (electronAPI?.onAuthTokens) {
+      console.log('[Auth] Setting up Electron auth token listener');
+      cleanupTokenListener = electronAPI.onAuthTokens(async (tokens) => {
+        console.log('[Auth] Received auth tokens from Electron IPC');
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+          });
+          if (error) {
+            console.error('[Auth] Failed to set session:', error);
+          } else {
+            console.log('[Auth] Session set successfully:', data.user?.email);
+          }
+        } catch (err) {
+          console.error('[Auth] Error setting session:', err);
+        }
+      });
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[Auth] Initial session:', session ? 'found' : 'none');
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -29,7 +68,8 @@ export function useAuth() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] Auth state changed:', event, session ? 'has session' : 'no session');
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -43,6 +83,9 @@ export function useAuth() {
 
     return () => {
       subscription.unsubscribe();
+      if (cleanupTokenListener) {
+        cleanupTokenListener();
+      }
     };
   }, []);
 
@@ -55,24 +98,25 @@ export function useAuth() {
     // Check if we're running in Electron (check at call time, not module load)
     const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
-    // In development, always use localhost (deep link only works in packaged app)
-    // In production Electron, use deep link protocol
-    // In production web, use current origin
-    const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-
+    // Determine redirect URL based on environment:
+    // - Electron (dev or prod): Use deep link protocol - Electron handles it and loads the correct URL
+    // - Browser/Web: Use the appropriate web URL
     let redirectTo: string;
-    if (isDev) {
-      // Development mode: localhost (same window will receive the redirect)
-      redirectTo = 'http://localhost:3007';
-    } else if (isElectron) {
-      // Production Electron: deep link will open the Electron app
+    if (isElectron) {
+      // Electron (both dev and production): Use deep link protocol
+      // The Electron app's handleDeepLink function will:
+      // - In dev: load http://localhost:3007 with auth tokens
+      // - In prod: load the static file with auth tokens
       redirectTo = 'bricknote://auth/callback';
+    } else if (window.location.hostname === 'localhost') {
+      // Browser development mode: localhost
+      redirectTo = 'http://localhost:3007';
     } else {
       // Production web: redirect back to current origin
       redirectTo = window.location.origin;
     }
 
-    console.log('[Auth] signIn redirect:', { isDev, isElectron, redirectTo });
+    console.log('[Auth] signIn redirect:', { isElectron, redirectTo });
 
     const { error } = await supabase.auth.signInWithOtp({
       email,

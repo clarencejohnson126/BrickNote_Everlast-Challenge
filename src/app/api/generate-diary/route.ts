@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Use Node.js runtime for consistent behavior in both dev and production
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {

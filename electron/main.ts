@@ -69,9 +69,11 @@ function createWindow() {
 
 // Handle deep link URL (for auth callback)
 function handleDeepLink(url: string) {
-  console.log('Deep link received:', url);
+  console.log('[Deep Link] Received:', url);
 
+  // Create window if it doesn't exist
   if (!mainWindow) {
+    console.log('[Deep Link] Creating new window...');
     createWindow();
   }
 
@@ -83,20 +85,47 @@ function handleDeepLink(url: string) {
     const hash = urlObj.hash || '';
     const search = urlObj.search || '';
 
-    // Forward the auth tokens to the renderer
-    if (mainWindow) {
-      // Navigate to the app with the tokens
-      const baseUrl = process.env.NODE_ENV !== 'production'
-        ? 'http://localhost:3007'
-        : `file://${path.join(__dirname, '../out/index.html')}`;
+    console.log('[Deep Link] Parsed:', { hash: hash ? 'present' : 'empty', search: search ? 'present' : 'empty' });
 
-      // Append the hash or search params
-      const fullUrl = baseUrl + (hash || search);
-      mainWindow.loadURL(fullUrl);
+    // Parse tokens from hash fragment
+    const tokenString = hash.startsWith('#') ? hash.substring(1) : (search.startsWith('?') ? search.substring(1) : '');
+    const params = new URLSearchParams(tokenString);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken && mainWindow) {
+      console.log('[Deep Link] Found auth tokens, sending to renderer...');
+
+      // Wait for the page to be ready, then send tokens via IPC
+      const sendTokens = () => {
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('auth:tokens', {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          console.log('[Deep Link] Tokens sent to renderer');
+        }
+      };
+
+      // If page is already loaded, send immediately. Otherwise, wait for load.
+      if (mainWindow.webContents.isLoading()) {
+        mainWindow.webContents.once('did-finish-load', sendTokens);
+      } else {
+        // Small delay to ensure React app is initialized
+        setTimeout(sendTokens, 500);
+      }
+
+      // Ensure window is visible and focused
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
       mainWindow.focus();
+    } else if (hash.includes('error=') || search.includes('error=')) {
+      console.log('[Deep Link] Auth error in URL:', tokenString);
     }
   } catch (error) {
-    console.error('Failed to parse deep link:', error);
+    console.error('[Deep Link] Failed to parse:', error);
   }
 }
 
@@ -913,6 +942,16 @@ app.whenReady().then(() => {
   loadEnv();
   createWindow();
   registerGlobalShortcut();
+
+  // Handle deep link on Windows/Linux for first launch (if app was opened via deep link)
+  // On macOS, this is handled by the 'open-url' event
+  if (process.platform !== 'darwin') {
+    const url = process.argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
+    if (url) {
+      console.log('[Deep Link] Found deep link in launch args:', url);
+      handleDeepLink(url);
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -10,6 +10,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     };
   },
 
+  // Auth tokens listener (for deep link auth callback)
+  onAuthTokens: (callback: (tokens: { access_token: string; refresh_token: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, tokens: { access_token: string; refresh_token: string }) => {
+      callback(tokens);
+    };
+    ipcRenderer.on('auth:tokens', handler);
+    return () => {
+      ipcRenderer.removeListener('auth:tokens', handler);
+    };
+  },
+
   // Speech-to-text transcription
   transcribe: (audioBuffer: ArrayBuffer, language: string) =>
     ipcRenderer.invoke('stt:transcribe', audioBuffer, language),
@@ -66,6 +77,7 @@ declare global {
   interface Window {
     electronAPI: {
       onRecordingToggle: (callback: () => void) => () => void;
+      onAuthTokens: (callback: (tokens: { access_token: string; refresh_token: string }) => void) => () => void;
       transcribe: (
         audioBuffer: ArrayBuffer,
         language: string

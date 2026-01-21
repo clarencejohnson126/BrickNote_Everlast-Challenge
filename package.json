@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -k \"next dev -p 3007\" \"npm run electron:dev\"",
     "build": "next build",
-    "build:electron": "next build && npm run electron:build",
+    "build:electron": "STATIC_EXPORT=true next build && npm run electron:build",
     "start": "electron .",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "electron:build": "tsc -p electron/tsconfig.json",

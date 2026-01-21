@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Create a lazy-initialized client to avoid build-time errors
+// Single lazy-initialized client to avoid "Multiple GoTrueClient instances" warning
 let _supabase: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
@@ -17,13 +17,20 @@ export function getSupabase(): SupabaseClient | null {
   }
 
   if (!_supabase) {
-    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+    _supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Detect session from URL hash (for magic link redirects)
+        detectSessionInUrl: true,
+        // Persist session in localStorage
+        persistSession: true,
+        // Auto-refresh tokens
+        autoRefreshToken: true,
+      },
+    });
   }
 
   return _supabase;
 }
 
-// For backwards compatibility - but will be null during build if credentials missing
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// For backwards compatibility - use the singleton getter
+export const supabase = typeof window !== 'undefined' ? getSupabase() : null;

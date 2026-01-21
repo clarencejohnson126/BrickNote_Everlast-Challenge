@@ -442,6 +442,7 @@ export function RecordingProvider({
         setDiaryMarkdown(diaryResult.markdown || '');
       } else {
         console.error('Diary generation failed:', diaryResult.error);
+        setError(`Diary generation failed: ${diaryResult.error}`);
       }
 
       if (defectResult.success) {
@@ -449,6 +450,10 @@ export function RecordingProvider({
         setDefectJson(defectResult.json as DefectData || null);
       } else {
         console.error('Defect generation failed:', defectResult.error);
+        // Only set error if diary also failed, otherwise user still has diary
+        if (!diaryResult.success) {
+          setError(`Report generation failed: ${diaryResult.error || defectResult.error}`);
+        }
       }
     } catch (err) {
       console.error('Processing error:', err);

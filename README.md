@@ -1,55 +1,222 @@
 # BrickNote
 
-Desktop voice intelligence app for construction site documentation. Record voice notes on-site, get AI-generated daily reports and defect documentation.
+Desktop-Anwendung zur Sprachdokumentation auf Baustellen. Nehmen Sie Sprachnotizen vor Ort auf und erhalten Sie KI-generierte Tagesberichte und Mängeldokumentationen.
 
-**Built for the EVERLAST KI Developer Challenge**
+**Entwickelt für die EVERLAST KI Developer Challenge**
 
-## Features
+## Inhaltsverzeichnis
 
-- **Global Hotkey Recording** - Press `Cmd+Shift+Space` (Mac) or `Ctrl+Shift+Space` (Windows) to start/stop recording
-- **Speech-to-Text** - Transcription powered by OpenAI Whisper API
-- **AI-Generated Reports** - GPT-4o generates structured daily reports and defect documentation
-- **Bilingual Support** - Toggle between German (DE) and English (EN)
-- **Project Management** - Organize recordings by construction project
-- **History** - View, copy, and manage past entries
-- **Magic Link Auth** - Passwordless authentication via Supabase
-- **Smart Insights** - AI-powered analysis including:
-  - **Claim Safety Layer** - Legal risk assessment with VOB/BGB references
-  - **Confidence Meter** - Documentation completeness scoring
-  - **Delta Intelligence** - Track changes across project entries
+1. [Funktionen](#funktionen)
+2. [Schnellstart (für Reviewer)](#schnellstart-für-reviewer)
+3. [Vollständiger Workflow](#vollständiger-workflow)
+4. [Smart Insights (Analyse)](#smart-insights-analyse)
+5. [Architektur](#architektur)
+6. [Installation & Einrichtung](#installation--einrichtung)
+7. [Projektstruktur](#projektstruktur)
 
-## Quick Start (for Reviewers)
+---
+
+## Funktionen
+
+- **Globaler Hotkey** - `Cmd+Shift+Space` (Mac) oder `Ctrl+Shift+Space` (Windows) zum Starten/Stoppen der Aufnahme
+- **Spracherkennung** - Transkription powered by OpenAI Whisper API
+- **KI-generierte Berichte** - GPT-4o erstellt strukturierte Tagesberichte und Mängeldokumentationen
+- **Zweisprachig** - Umschaltbar zwischen Deutsch (DE) und Englisch (EN)
+- **Projektverwaltung** - Aufnahmen nach Bauprojekt organisieren
+- **Historie** - Vergangene Einträge ansehen, kopieren und verwalten
+- **Magic Link Auth** - Passwortlose Anmeldung über Supabase
+- **Gamma-Integration** - Professionelle Präsentationen aus Berichten generieren
+- **Smart Insights** - KI-gestützte Analysen:
+  - **Haftungsrisiko-Analyse** - Rechtliche Risikobewertung mit VOB/BGB-Referenzen
+  - **Confidence Meter** - Vollständigkeitsbewertung der Dokumentation
+  - **Delta Intelligence** - Änderungsverfolgung über Projekteinträge hinweg
+
+---
+
+## Schnellstart (für Reviewer)
 
 ```bash
-# 1. Clone the repository
+# 1. Repository klonen
 git clone https://github.com/clarencejohnson126/BrickNote_Everlast-Challenge.git
 cd BrickNote_Everlast-Challenge
 
-# 2. Install dependencies
+# 2. Abhängigkeiten installieren
 npm install
 
-# 3. Create .env file with API keys (see .env.example)
+# 3. .env-Datei erstellen (siehe .env.example)
 cp .env.example .env
-# Edit .env with your Supabase and OpenAI credentials
+# Bearbeiten Sie .env mit Ihren Supabase- und OpenAI-Zugangsdaten
 
-# 4. Run the Electron app
+# 4. Electron-App starten
 npm run dev
 
-# 5. Sign in with your email, click the magic link, and start recording!
+# 5. Mit E-Mail anmelden, Magic Link klicken, und loslegen!
 ```
 
-**Test the app:**
-- Press `Cmd+Shift+Space` to start/stop recording
-- Speak in German or English about construction work
-- Review the generated reports in the tabs
+**App testen:**
+- Drücken Sie `Cmd+Shift+Space` um die Aufnahme zu starten/stoppen
+- Sprechen Sie auf Deutsch oder Englisch über Bauarbeiten
+- Überprüfen Sie die generierten Berichte in den Tabs
 
-## Architecture
+> **Hinweis für Reviewer:** Die App läuft in der Entwicklung auf `localhost:3007`. Magic Links leiten automatisch dorthin zurück.
+
+---
+
+## Vollständiger Workflow
+
+### Schritt 1: Anmeldung
+
+1. Öffnen Sie die App mit `npm run dev`
+2. Geben Sie Ihre E-Mail-Adresse ein
+3. Klicken Sie auf den Magic Link in Ihrer E-Mail
+4. Sie werden automatisch in die App eingeloggt
+
+### Schritt 2: Projekt auswählen/erstellen
+
+1. Wählen Sie ein bestehendes Projekt aus der Dropdown-Liste
+2. Oder erstellen Sie ein neues Projekt (z.B. "Baustelle Musterstraße 5")
+3. Wählen Sie die Sprache (DE/EN) für die Ausgabe
+
+### Schritt 3: Aufnahme starten
+
+1. Drücken Sie den globalen Hotkey: `Cmd+Shift+Space` (Mac) / `Ctrl+Shift+Space` (Windows)
+2. Der Aufnahme-Indikator erscheint (pulsierender roter Punkt)
+3. Sprechen Sie Ihre Beobachtungen, z.B.:
+   - *"Heute haben wir die Betonarbeiten im Erdgeschoss abgeschlossen. Es gab Verzögerungen wegen Lieferproblemen beim Bewehrungsstahl. Im Bad wurden Risse in der Fliesen bemerkt, etwa 3 Stück betroffen..."*
+
+### Schritt 4: Aufnahme beenden & Verarbeitung
+
+1. Drücken Sie erneut `Cmd+Shift+Space` um die Aufnahme zu stoppen
+2. Die App verarbeitet automatisch:
+   - **Transkription** via OpenAI Whisper → Ihr gesprochenes Wort wird zu Text
+   - **Tagesbericht-Generierung** via GPT-4o → Strukturierter Bericht
+   - **Mängelbericht-Generierung** via GPT-4o → Defekt-Dokumentation
+
+### Schritt 5: Ergebnisse prüfen
+
+Nach der Verarbeitung sehen Sie drei Tabs:
+
+| Tab | Inhalt |
+|-----|--------|
+| **Transkript** | Ihr ursprüngliches, wörtliches Transkript |
+| **Tagesbericht** | Strukturierter Bericht mit Datum, Wetter, Personal, erledigte Arbeiten |
+| **Mängelbericht** | Liste erkannter Mängel mit Beschreibung, Ort, Schweregrad |
+
+### Schritt 6: Gamma-Dokument erstellen (Optional)
+
+1. Klicken Sie auf "Gamma-Präsentation generieren"
+2. Die App erstellt automatisch ein professionelles Dokument via Gamma API
+3. Nach Fertigstellung erhalten Sie einen Link zur Präsentation
+4. Ideal für Bauherren-Meetings oder Projektberichte
+
+### Schritt 7: Smart Insights analysieren
+
+1. Klicken Sie auf "Analysieren" (oder das Analyse-Icon)
+2. Die KI analysiert Ihre Dokumentation auf:
+   - Haftungsrisiken
+   - Vollständigkeit
+   - Änderungen gegenüber vorherigen Einträgen
+
+### Schritt 8: Speichern
+
+1. Klicken Sie auf "Speichern"
+2. Der Eintrag wird in Ihrer Historie gespeichert
+3. Zugriff jederzeit über das Historie-Panel
+
+---
+
+## Smart Insights (Analyse)
+
+BrickNote bietet drei KI-gestützte Analysefunktionen:
+
+### 1. Haftungsrisiko-Analyse (Claim Safety Layer)
+
+**Zweck:** Identifiziert rechtlich problematische Formulierungen in Ihrer Dokumentation.
+
+**Funktionsweise:**
+- Analysiert Tagesbericht und Mängelbericht
+- Prüft auf VOB/BGB-relevante Risiken
+- Bewertet jede problematische Phrase
+
+**Ausgabe:**
+```
+Risikolevel: VORSICHT (45%)
+
+Problematische Formulierungen:
+┌─────────────────────────────────────────────────────────┐
+│ Original: "Der Mangel wurde vom Subunternehmer verursacht"
+│ Problem: Schuldzuweisung ohne Beweissicherung
+│ Empfehlung: "Ein Mangel wurde festgestellt. Ursache wird geprüft."
+│ Risikobeitrag: 25%
+└─────────────────────────────────────────────────────────┘
+```
+
+**Risikostufen:**
+- 🟢 **Sicher** (0-30%): Dokumentation ist rechtlich unbedenklich
+- 🟡 **Vorsicht** (31-60%): Einige Formulierungen sollten überarbeitet werden
+- 🔴 **Riskant** (61-100%): Dringend überarbeiten vor Verwendung
+
+### 2. Confidence Meter (Vollständigkeits-Score)
+
+**Zweck:** Bewertet, wie vollständig Ihre Dokumentation ist.
+
+**Prüft auf:**
+- Datum und Uhrzeit
+- Beteiligte Personen/Firmen
+- Wetterbedingungen
+- Ausgeführte Arbeiten
+- Material-Dokumentation
+- Mängelbeschreibungen mit Fotos/Ort
+
+**Ausgabe:**
+```
+Vollständigkeit: 78%
+Confidence Level: MITTEL
+
+Erfasste Elemente:
+✓ Datum/Uhrzeit     ✓ Wetterbedingungen    ✓ Ausgeführte Arbeiten
+✗ Personal-Liste    ✗ Material-Mengen      ✓ Mängel dokumentiert
+
+Fehlende Elemente:
+• Personal-Liste (KRITISCH) - Wichtig für Nachweispflicht
+• Material-Mengen (WICHTIG) - Relevant für Abrechnung
+```
+
+### 3. Delta Intelligence (Änderungsverfolgung)
+
+**Zweck:** Vergleicht den aktuellen Eintrag mit vorherigen Einträgen desselben Projekts.
+
+**Analysiert:**
+- **Neue Einträge**: Was ist heute neu?
+- **Gelöste Probleme**: Welche früheren Mängel wurden behoben?
+- **Wiederkehrende Probleme**: Welche Issues tauchen immer wieder auf?
+
+**Ausgabe:**
+```
+Delta Intelligence - Projekt "Baustelle Musterstraße"
+
+NEUE EINTRÄGE:
+• Betonarbeiten EG abgeschlossen (MAJOR - Kategorie: Arbeit)
+• Lieferverzögerung Bewehrungsstahl (MINOR - Kategorie: Material)
+
+GELÖSTE PROBLEME:
+• "Wassereinbruch Keller" - Erstmals erwähnt: 15.01.2026
+  → Heute gelöst: "Abdichtung abgeschlossen"
+
+WIEDERKEHRENDE PROBLEME:
+• Lieferverzögerungen (3 Vorkommen, Trend: STABIL)
+  Erste Erwähnung: 10.01.2026
+```
+
+---
+
+## Architektur
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Electron Main Process                     │
 │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────┐ │
-│  │ Global      │  │ IPC Handler │  │ OpenAI API Calls     │ │
+│  │ Globale     │  │ IPC Handler │  │ OpenAI API Calls     │ │
 │  │ Shortcuts   │  │ (Preload)   │  │ - Whisper STT        │ │
 │  └─────────────┘  └─────────────┘  │ - GPT-4o LLM         │ │
 │                                     └──────────────────────┘ │
@@ -73,30 +240,46 @@ npm run dev
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Setup
+### Design-Entscheidungen
 
-### Prerequisites
+| Entscheidung | Begründung |
+|--------------|------------|
+| **API-Calls im Main Process** | API-Keys bleiben sicher, keine Exposure im Client-Code |
+| **MediaRecorder im Renderer** | Browser-API funktioniert gut in Electron's Chromium |
+| **Parallele LLM-Calls** | Tages- und Mängelbericht werden gleichzeitig generiert |
+| **Magic Link Auth** | Einfache UX für Bauarbeiter - kein Passwort nötig |
+| **Tailwind CSS** | Schnell zu entwickeln, leichtgewichtig |
+
+---
+
+## Installation & Einrichtung
+
+### Voraussetzungen
 
 - Node.js 18+
-- Supabase project
-- OpenAI API key
+- Supabase Projekt
+- OpenAI API Key
+- (Optional) Gamma API Key für Präsentationen
 
-### Environment Variables
+### Umgebungsvariablen
 
-Create a `.env` file in the project root:
+Erstellen Sie eine `.env`-Datei im Projektroot:
 
 ```env
-# Supabase (used in renderer)
+# Supabase (im Renderer verwendet)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# OpenAI (used in Electron main process)
+# OpenAI (im Electron Main Process verwendet)
 OPENAI_API_KEY=sk-your-openai-api-key
+
+# Gamma (optional, für Präsentationen)
+GAMMA_API_KEY=your-gamma-api-key
 ```
 
-### Database Setup
+### Datenbank-Setup
 
-The following tables are required in Supabase:
+Die folgenden Tabellen werden in Supabase benötigt:
 
 **bricknote_projects**
 ```sql
@@ -138,78 +321,53 @@ create policy "Users can CRUD own entries"
   with check (auth.uid() = user_id);
 ```
 
-### Supabase Auth Configuration
+### Supabase Auth Konfiguration
 
-In your Supabase project dashboard, go to **Authentication → URL Configuration** and add these redirect URLs:
+Im Supabase Dashboard unter **Authentication → URL Configuration** diese Redirect URLs hinzufügen:
 
 ```
 http://localhost:3007/**
 bricknote://auth/callback
 ```
 
-The first one is for development, the second is for the packaged desktop app.
+Die erste ist für die Entwicklung, die zweite für die verpackte Desktop-App.
 
 ### Installation
 
 ```bash
-# Install dependencies
+# Abhängigkeiten installieren
 npm install
 
-# Run in development mode
+# Entwicklungsmodus starten
 npm run dev
 
-# Build for production
+# Für Produktion bauen
 npm run build
 
-# Package for distribution
+# Für Distribution verpacken
 npm run package
 ```
 
-## Usage
+---
 
-1. **Sign In** - Enter your email to receive a magic link (click the link in your email to authenticate)
-2. **Select Language** - Choose DE or EN for output language
-3. **Create/Select Project** - Organize your recordings by project
-4. **Record** - Press `Cmd+Shift+Space` (Mac) or `Ctrl+Shift+Space` (Windows) to start recording
-5. **Stop Recording** - Press the hotkey again to stop and process, or click ✕ to abort
-6. **Review Output** - Check the generated Tagesbericht (Diary) and Mängelbericht (Defect Report) tabs
-7. **Smart Insights** - Click "Analysieren" for AI-powered risk analysis and documentation metrics
-8. **Save** - Click Save to store the entry in your history
-
-> **Note for reviewers:** The app runs on `localhost:3007` in development. Authentication magic links will redirect back to this URL automatically.
-
-## Design Decisions
-
-### IPC for API Calls
-All external API calls (OpenAI Whisper, GPT-4o) happen in the Electron main process rather than the renderer. This keeps API keys secure and prevents exposure in client-side code.
-
-### MediaRecorder in Renderer
-Browser's MediaRecorder API works well in Electron's Chromium environment and is simpler than native audio libraries. Audio is captured as WebM/Opus.
-
-### Parallel LLM Calls
-Diary and Defect report generation run simultaneously using `Promise.all()` for faster results after transcription completes.
-
-### No Real-Time Streaming
-For MVP simplicity, we wait for full transcription before showing results rather than streaming partial text.
-
-### Magic Link Auth
-Simpler UX for construction workers - no password to remember, just click the link in email.
-
-### Tailwind CSS
-Fast to build, lightweight, no heavy UI library dependencies.
-
-## Project Structure
+## Projektstruktur
 
 ```
 /BrickNote
 ├── electron/
-│   ├── main.ts           # Electron main process
-│   ├── preload.ts        # Secure IPC bridge
+│   ├── main.ts           # Electron Main Process
+│   ├── preload.ts        # Sichere IPC-Brücke
 │   └── tsconfig.json
 ├── src/
 │   ├── app/
+│   │   ├── api/          # API Routes (für Browser/Vercel)
+│   │   │   ├── generate-diary/
+│   │   │   ├── generate-defect/
+│   │   │   ├── transcribe/
+│   │   │   ├── gamma/
+│   │   │   └── smart-insights/
 │   │   ├── layout.tsx
-│   │   ├── page.tsx      # Main app entry
+│   │   ├── page.tsx      # Haupt-App-Einstieg
 │   │   └── globals.css
 │   ├── components/
 │   │   ├── auth/
@@ -221,6 +379,7 @@ Fast to build, lightweight, no heavy UI library dependencies.
 │   │   │   ├── TopBar.tsx
 │   │   │   ├── TranscriptPanel.tsx
 │   │   │   ├── OutputTabs.tsx
+│   │   │   ├── SmartInsightsPanel.tsx
 │   │   │   └── HistoryPanel.tsx
 │   │   └── ui/
 │   │       ├── Button.tsx
@@ -235,8 +394,6 @@ Fast to build, lightweight, no heavy UI library dependencies.
 │       └── types.ts
 ├── supabase/
 │   └── migrations/
-│       ├── 001_create_projects.sql
-│       └── 002_create_voice_entries.sql
 ├── .env.example
 ├── package.json
 ├── next.config.js
@@ -244,6 +401,22 @@ Fast to build, lightweight, no heavy UI library dependencies.
 └── tsconfig.json
 ```
 
-## License
+---
+
+## Browser/Web-Version
+
+BrickNote kann auch im Browser laufen (z.B. auf Vercel deployed):
+
+- Alle API-Calls gehen über Next.js API Routes
+- Aufnahme-Button statt globalem Hotkey
+- Gleiche Funktionalität wie die Desktop-Version
+
+---
+
+## Lizenz
 
 MIT
+
+---
+
+**Entwickelt für die EVERLAST KI Developer Challenge 2026**
