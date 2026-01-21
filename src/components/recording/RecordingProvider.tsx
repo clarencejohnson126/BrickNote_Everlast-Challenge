@@ -458,14 +458,14 @@ export function RecordingProvider({
 
     try {
       // Check if Electron API is available
-      const useElectronAPI = typeof window !== 'undefined' && window.electronAPI;
+      const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
 
       let transcriptResult;
 
-      if (useElectronAPI) {
+      if (electronAPI) {
         // Use Electron IPC
         const arrayBuffer = await audioBlob.arrayBuffer();
-        transcriptResult = await window.electronAPI.transcribe(arrayBuffer, lang);
+        transcriptResult = await electronAPI.transcribe(arrayBuffer, lang);
       } else {
         // Use direct API call (browser mode)
         transcriptResult = await transcribeAudio(audioBlob, lang);
@@ -487,10 +487,10 @@ export function RecordingProvider({
       // Generate diary and defect reports in parallel
       let diaryResult, defectResult;
 
-      if (useElectronAPI) {
+      if (electronAPI) {
         [diaryResult, defectResult] = await Promise.all([
-          window.electronAPI.generateDiary(transcriptText, lang, project),
-          window.electronAPI.generateDefect(transcriptText, lang),
+          electronAPI.generateDiary(transcriptText, lang, project),
+          electronAPI.generateDefect(transcriptText, lang),
         ]);
       } else {
         [diaryResult, defectResult] = await Promise.all([
@@ -527,14 +527,14 @@ export function RecordingProvider({
       setError(null);
 
       try {
-        const useElectronAPI = typeof window !== 'undefined' && window.electronAPI;
+        const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
 
         let diaryResult, defectResult;
 
-        if (useElectronAPI) {
+        if (electronAPI) {
           [diaryResult, defectResult] = await Promise.all([
-            window.electronAPI.generateDiary(transcript, newLanguage, newProjectName),
-            window.electronAPI.generateDefect(transcript, newLanguage),
+            electronAPI.generateDiary(transcript, newLanguage, newProjectName),
+            electronAPI.generateDefect(transcript, newLanguage),
           ]);
         } else {
           [diaryResult, defectResult] = await Promise.all([
@@ -589,10 +589,10 @@ export function RecordingProvider({
       console.log('[generateSmartInsights] Set isProcessingInsights to true');
 
       try {
-        const useElectronAPI = typeof window !== 'undefined' && window.electronAPI;
-        console.log('[generateSmartInsights] useElectronAPI:', useElectronAPI);
+        const electronAPI = typeof window !== 'undefined' ? window.electronAPI : undefined;
+        console.log('[generateSmartInsights] electronAPI available:', !!electronAPI);
 
-        if (!useElectronAPI) {
+        if (!electronAPI) {
           console.warn('Smart Insights requires Electron API');
           setIsProcessingInsights(false);
           return;
@@ -602,14 +602,14 @@ export function RecordingProvider({
         // Run all three analyses in parallel
         const [claimSafetyResult, confidenceMeterResult, deltaIntelligenceResult] =
           await Promise.all([
-            window.electronAPI.generateClaimSafety(diaryMarkdown, defectMarkdown, lang),
-            window.electronAPI.generateConfidenceMeter(
+            electronAPI.generateClaimSafety(diaryMarkdown, defectMarkdown, lang),
+            electronAPI.generateConfidenceMeter(
               transcript,
               diaryMarkdown,
               defectMarkdown,
               lang
             ),
-            window.electronAPI.generateDeltaIntelligence(
+            electronAPI.generateDeltaIntelligence(
               transcript,
               diaryMarkdown,
               defectMarkdown,

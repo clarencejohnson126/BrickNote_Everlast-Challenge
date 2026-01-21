@@ -10,7 +10,7 @@ import { useSound } from '@/hooks/useSound';
 import type { Language, DefectData, SmartInsights as SmartInsightsType } from '@/lib/types';
 
 // Helper to check if we're in Electron
-const isElectron = typeof window !== 'undefined' && window.electronAPI;
+const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
 interface OutputTabsProps {
   onSave: (data: {
@@ -212,7 +212,8 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
   }, []);
 
   const handleGeneratePresentation = useCallback(async () => {
-    if (!isElectron || !currentContent) return;
+    const electronAPI = window.electronAPI;
+    if (!electronAPI || !currentContent) return;
     playClick();
 
     setGeneratingPresentation(true);
@@ -224,7 +225,7 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
         ? (language === 'de' ? `Tagesbericht - ${projectName || 'Baustelle'}` : `Daily Report - ${projectName || 'Construction Site'}`)
         : (language === 'de' ? 'Mängelbericht' : 'Defect Report');
 
-      const result = await window.electronAPI.generatePresentation(currentContent, title);
+      const result = await electronAPI.generatePresentation(currentContent, title);
 
       if (!result.success || !result.generationId) {
         throw new Error(result.error || 'Failed to start presentation generation');
@@ -236,7 +237,7 @@ export function OutputTabs({ onSave, language, projectName, projectId, fetchPrev
       const generationId = result.generationId;
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const statusResult = await window.electronAPI.checkPresentationStatus(generationId);
+          const statusResult = await electronAPI.checkPresentationStatus(generationId);
 
           if (!statusResult.success) {
             throw new Error(statusResult.error || 'Failed to check status');
