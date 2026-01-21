@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { VoiceEntry, Language, DefectData } from '@/lib/types';
 
 export function useVoiceEntries(userId: string | undefined) {
@@ -12,6 +12,12 @@ export function useVoiceEntries(userId: string | undefined) {
   const fetchEntries = useCallback(async () => {
     if (!userId) {
       setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) {
       setLoading(false);
       return;
     }
@@ -50,6 +56,9 @@ export function useVoiceEntries(userId: string | undefined) {
   }) => {
     if (!userId) return { error: new Error('Not authenticated') };
 
+    const supabase = getSupabase();
+    if (!supabase) return { data: null, error: new Error('Supabase not configured') };
+
     try {
       const { data, error: createError } = await supabase
         .from('bricknote_voice_entries')
@@ -70,6 +79,9 @@ export function useVoiceEntries(userId: string | undefined) {
   };
 
   const deleteEntry = async (entryId: string) => {
+    const supabase = getSupabase();
+    if (!supabase) return { error: new Error('Supabase not configured') };
+
     try {
       const { error: deleteError } = await supabase
         .from('bricknote_voice_entries')
@@ -92,6 +104,9 @@ export function useVoiceEntries(userId: string | undefined) {
       if (!userId || !projectId) {
         return { data: [], error: null };
       }
+
+      const supabase = getSupabase();
+      if (!supabase) return { data: [], error: new Error('Supabase not configured') };
 
       try {
         const { data, error: fetchError } = await supabase

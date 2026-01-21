@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { User } from '@/lib/types';
 
 // Check if we're running in Electron
@@ -12,6 +12,12 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -44,6 +50,11 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string) => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return { error: new Error('Supabase not configured') };
+    }
+
     // Use deep link protocol when in Electron, otherwise use current origin
     const redirectTo = isElectron
       ? 'bricknote://auth/callback'
@@ -59,6 +70,9 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
     await supabase.auth.signOut();
     setUser(null);
   };

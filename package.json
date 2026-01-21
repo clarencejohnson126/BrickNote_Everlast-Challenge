@@ -5,11 +5,12 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"next dev -p 3007\" \"npm run electron:dev\"",
-    "build": "next build && npm run electron:build",
+    "build": "next build",
+    "build:electron": "next build && npm run electron:build",
     "start": "electron .",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "electron:build": "tsc -p electron/tsconfig.json",
-    "package": "npm run build && electron-builder"
+    "package": "npm run build:electron && electron-builder"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
